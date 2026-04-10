@@ -19,7 +19,7 @@ module tt_um_xgames123_nna8v2 (
   wire brk;
   wire r;
   wire w;
-  wire [15:0] addr_out = 0;
+  wire [15:0] addr_out;
 
   nna8v2_mpu cpu(
     .clk(clk),
