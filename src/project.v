@@ -16,19 +16,14 @@ module tt_um_xgames123_nna8v2 (
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );
-  wire brk;
-  wire r;
-  wire w;
-  wire [15:0] addr_out;
-
-  nna8v2_mpu cpu(
+  nna8v2 soc(
+    .ui_in(ui_in),
+    .uo_out(uo_out),
+    .uio_in(uio_in),
+    .uio_out(uio_out),
+    .uio_oe(uio_oe),
     .clk(clk),
-    .data_in( uio_in ),
-    .data_out( uio_out ),
-    .addr_out( addr_out ),
-    .w( uo_out[0] ),
-    .r( uo_out[1] ),
-    .brk( uo_out[2] ),
-    .rst(rst_n)
+    .rst_n(rst_n)
   );
+
 endmodule

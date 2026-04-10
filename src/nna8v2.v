@@ -373,7 +373,7 @@ module DIG_CounterPreset #(
 endmodule
 
 
-module nna8v2_mpu (
+module nna8v2_mpu_mux (
   input clk,
   input [7:0] data_in,
   input rst, // Reset the processor
@@ -881,4 +881,200 @@ module nna8v2_mpu (
   assign data_out = data_out_temp;
   assign r = r_temp;
   assign w = w_temp;
+endmodule
+
+module DIG_Counter_Nbit
+#(
+    parameter Bits = 2
+)
+(
+    output [(Bits-1):0] out,
+    output ovf,
+    input C,
+    input en,
+    input clr
+);
+    reg [(Bits-1):0] count;
+
+    always @ (posedge C) begin
+        if (clr)
+          count <= 'h0;
+        else if (en)
+          count <= count + 1'b1;
+    end
+
+    assign out = count;
+    assign ovf = en? &count : 1'b0;
+
+    initial begin
+        count = 'h0;
+    end
+endmodule
+
+
+module memory_controller (
+  input clk,
+  input [15:0] addr_in,
+  input [3:0] SPI_in,
+  input rst,
+  output [7:0] data_out,
+  output data_ready,
+  output [3:0] SPI_out, // Output
+  output SPI_oe,
+  output SPI_cs
+);
+  wire [3:0] s0;
+  wire [7:0] data_out_temp;
+  wire data_ready_temp;
+  wire [3:0] s1;
+  wire [3:0] s2;
+  wire [3:0] s3;
+  wire [3:0] s4;
+  wire pread;
+  wire s5;
+  wire [7:0] s6;
+  wire [3:0] s7;
+  wire [3:0] s8;
+  DIG_Counter_Nbit #(
+    .Bits(4)
+  )
+  DIG_Counter_Nbit_i0 (
+    .en( 1'b1 ),
+    .C( clk ),
+    .clr( rst ),
+    .out( s0 )
+  );
+  assign SPI_cs = ~ rst;
+  assign s1 = addr_in[3:0];
+  assign s2 = addr_in[7:4];
+  assign s3 = addr_in[11:8];
+  assign s4 = addr_in[15:12];
+  Mux_16x1_NBits #(
+    .Bits(4)
+  )
+  Mux_16x1_NBits_i1 (
+    .sel( s0 ),
+    .in_0( 4'b1110 ),
+    .in_1( 4'b1011 ),
+    .in_2( s1 ),
+    .in_3( s2 ),
+    .in_4( s3 ),
+    .in_5( s4 ),
+    .in_6( 4'b0 ),
+    .in_7( 4'b0 ),
+    .in_8( 4'b0 ),
+    .in_9( 4'b0 ),
+    .in_10( 4'b0 ),
+    .in_11( 4'b0 ),
+    .in_12( 4'b0 ),
+    .in_13( 4'b0 ),
+    .in_14( 4'b0 ),
+    .in_15( 4'b0 ),
+    .out( SPI_out )
+  );
+  CompUnsigned #(
+    .Bits(4)
+  )
+  CompUnsigned_i2 (
+    .a( 4'b1110 ),
+    .b( s0 ),
+    .\= ( s5 )
+  );
+  CompUnsigned #(
+    .Bits(4)
+  )
+  CompUnsigned_i3 (
+    .a( 4'b1111 ),
+    .b( s0 ),
+    .\= ( data_ready_temp )
+  );
+  assign pread = (s5 | data_ready_temp);
+  assign SPI_oe = ~ pread;
+  DIG_Register_BUS #(
+    .Bits(8)
+  )
+  DIG_Register_BUS_i4 (
+    .D( s6 ),
+    .C( clk ),
+    .en( pread ),
+    .Q( data_out_temp )
+  );
+  assign s6[3:0] = s7;
+  assign s6[7:4] = SPI_in;
+  Mux_2x1_NBits #(
+    .Bits(4)
+  )
+  Mux_2x1_NBits_i5 (
+    .sel( data_ready_temp ),
+    .in_0( SPI_in ),
+    .in_1( s8 ),
+    .out( s7 )
+  );
+  assign s8 = data_out_temp[3:0];
+  assign data_out = data_out_temp;
+  assign data_ready = data_ready_temp;
+endmodule
+
+module nna8v2 (
+  input rst_n,
+  input clk,
+  input ena,
+  input [7:0] uio_in,
+  input [7:0] ui_in,
+  output [7:0] uo_out,
+  output [7:0] uio_out,
+  output [7:0] uio_oe
+);
+  wire rst;
+  wire clk_p;
+  wire [7:0] data_in;
+  wire [15:0] addr_out;
+  wire cs_flash;
+  wire [3:0] spi_in;
+  wire [3:0] spi_out;
+  wire s0;
+  wire [3:0] spi_oe;
+  assign uo_out = 8'b0;
+  assign rst = ~ rst_n;
+  assign spi_in[0] = uio_in[1];
+  assign spi_in[1] = uio_in[2];
+  assign spi_in[2] = uio_in[4];
+  assign spi_in[3] = uio_in[5];
+  nna8v2_mpu_mux nna8v2_mpu_mux_i0 (
+    .clk( clk_p ),
+    .data_in( data_in ),
+    .rst( rst ),
+    .addr_out( addr_out )
+  );
+  assign uio_out[0] = cs_flash;
+  assign uio_out[1] = spi_out[0];
+  assign uio_out[2] = spi_out[1];
+  assign uio_out[3] = clk;
+  assign uio_out[4] = spi_out[2];
+  assign uio_out[5] = spi_out[3];
+  assign uio_out[6] = 1'b0;
+  assign uio_out[7] = 1'b0;
+  memory_controller memory_controller_i1 (
+    .clk( clk ),
+    .addr_in( addr_out ),
+    .SPI_in( spi_in ),
+    .rst( rst ),
+    .data_out( data_in ),
+    .data_ready( clk_p ),
+    .SPI_out( spi_out ),
+    .SPI_oe( s0 ),
+    .SPI_cs( cs_flash )
+  );
+  assign spi_oe[0] = s0;
+  assign spi_oe[1] = s0;
+  assign spi_oe[2] = s0;
+  assign spi_oe[3] = s0;
+  assign uio_oe[0] = 1'b1;
+  assign uio_oe[1] = spi_oe[0];
+  assign uio_oe[2] = spi_oe[1];
+  assign uio_oe[3] = 1'b1;
+  assign uio_oe[4] = spi_oe[2];
+  assign uio_oe[5] = spi_oe[3];
+  assign uio_oe[6] = 1'b1;
+  assign uio_oe[7] = 1'b1;
 endmodule
