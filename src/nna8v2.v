@@ -989,7 +989,7 @@ module memory_controller (
     .\= ( data_ready_temp )
   );
   assign pread = (s5 | data_ready_temp);
-  assign SPI_oe = ~ pread;
+  assign SPI_oe = (~ pread & ~ rst);
   DIG_Register_BUS #(
     .Bits(8)
   )
@@ -1018,7 +1018,6 @@ endmodule
 module nna8v2 (
   input rst_n,
   input clk,
-  input ena,
   input [7:0] uio_in,
   input [7:0] ui_in,
   output [7:0] uo_out,
