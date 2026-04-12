@@ -1,10 +1,12 @@
 ## How it works
 
-`nna8v2` is a custom 8 bit processor that fits into 1 tt tile.
+`nna8v3` is a custom 8 bit processor that fits into 1 tt tile.
 
-Example programs are available or you can write your own using the [nnaasm assembler](https://github.com/Xgames123/nna/blob/main/spec/nnaasm.md).
+Example programs are available or you can write your own using the [nnaasm](https://github.com/Xgames123/nna/blob/main/spec/nnaasm.md) assembler.
 
-An overview of the instructions and the processor can be found in the [nna8v2 github repo here](https://github.com/Xgames123/nna/blob/main/spec/nna8v2.md)
+An overview of the instructions and the processor can be found in the [nna github repo](https://github.com/Xgames123/nna/blob/main/spec/nna8v3.md)
+
+Other versions of the `nna` architecture can also be found in the [nna github repo](https://github.com/Xgames123/nna)
 
 ## How to test
 
@@ -25,4 +27,4 @@ The design is intended to be used with this QSPI PMOD on the bidirectional PMOD.
 ## Generating verilog code
 
 The logic is made using [Hneemann's Digital](https://github.com/hneemann/digital).
-To generate the nna8v2.v file open the src/digital/soc.dig file and click export > verilog.
+To generate the nna8v3.v file open the src/digital/soc.dig file and click export > verilog.
