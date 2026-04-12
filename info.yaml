@@ -1,9 +1,9 @@
 # Tiny Tapeout project information
 project:
-  title:        "8 bit custom processor (nna8v2)"      # Project title
+  title:        "Custom 8 bit processor (nna8v2)"      # Project title
   author:       "Xgames123"      # Your name
   discord:      "ldev105"        # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "8 bit custom processor (nna8v2 No Name Architecture 8 bit Version 2)"
+  description:  "No Name Architecture 8 bit Version 2"
   language:     "Verilog"      # other examples include SystemVerilog, Amaranth, VHDL, etc
   clock_hz:     66000000       # Clock frequency in Hz (or 0 if not applicable)
 
