@@ -4,9 +4,9 @@
  */
 
 `default_nettype none
-`include "./nna8v2.v"
+`include "./tinynna.v"
 
-module tt_um_xgames123_nna8v3 (
+module tt_um_xgames123_tinynna (
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
     input  wire [7:0] uio_in,   // IOs: Input path
@@ -16,7 +16,7 @@ module tt_um_xgames123_nna8v3 (
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );
-  nna8v2 soc(
+  tinynna soc(
     .ui_in(ui_in),
     .uo_out(uo_out),
     .uio_in(uio_in),

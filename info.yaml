@@ -1,9 +1,9 @@
 # Tiny Tapeout project information
 project:
-  title:        "Custom 8 bit processor (nna8v3)"      # Project title
+  title:        "Custom 8 bit processor (tinynna)"      # Project title
   author:       "Xgames123"      # Your name
   discord:      "ldev105"        # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "No Name Architecture 8 bit Version 3"
+  description:  "8 bit Processor based on my custom nna8v3 architecture that fits into one tt tile"
   language:     "Verilog"      # other examples include SystemVerilog, Amaranth, VHDL, etc
   clock_hz:     66000000       # Clock frequency in Hz (or 0 if not applicable)
 
@@ -11,7 +11,7 @@ project:
   tiles: "1x1"          # Valid values: 1x1, 1x2, 2x2, 3x2, 4x2, 6x2 or 8x2
 
   # Your top module name must start with "tt_um_". Make it unique by including your github username:
-  top_module:  "tt_um_xgames123_nna8v3"
+  top_module:  "tt_um_xgames123_tinynna"
 
   # List your project's source files here.
   # Source files must be in ./src and you must list each source file separately, one per line.
@@ -28,9 +28,9 @@ pinout:
   ui[2]: "GPI 2"
   ui[3]: "GPI 3"
   ui[4]: "GPI 4"
-  ui[5]: ""
-  ui[6]: "SPI MISO"
-  ui[7]: "UART RX"
+  ui[5]: "GPI 5"
+  ui[6]: "GPI 6 / SPI MISO"
+  ui[7]: "GPI 7 / UART RX"
 
   # Outputs
   uo[0]: "GPO 0"
@@ -38,15 +38,15 @@ pinout:
   uo[2]: "GPO 2"
   uo[3]: "GPO 3"
   uo[4]: "GPO 4"
-  uo[5]: "SPI SCK"
-  uo[6]: "SPI MOSI"
-  uo[7]: "UART TX"
+  uo[5]: "GPO 5 / SPI SCK"
+  uo[6]: "GPO 6 / SPI MOSI"
+  uo[7]: "GPO 7 / UART TX"
 
   # Bidirectional pins
   uio[0]: "CS0 (Flash)"
   uio[1]: "SD0/MOSI"
   uio[2]: "SD1/MISO"
-  uio[3]: "SCK" # By modification of the QSPI PCB this pin becomes available
+  uio[3]: "SCK"
   uio[4]: "SD2"
   uio[5]: "SD3"
   uio[6]: "CS1 (RAM A)"

@@ -917,54 +917,70 @@ module memory_controller (
   input [15:0] addr_in,
   input [3:0] SPI_in,
   input rst,
+  input [7:0] data_in,
+  input write,
   output [7:0] data_out,
   output data_ready,
   output [3:0] SPI_out, // Output
   output SPI_oe,
   output SPI_cs
 );
-  wire [3:0] s0;
+  wire s0;
+  wire [3:0] state;
   wire [7:0] data_out_temp;
   wire data_ready_temp;
   wire [3:0] s1;
   wire [3:0] s2;
   wire [3:0] s3;
   wire [3:0] s4;
-  wire pread;
-  wire s5;
-  wire [7:0] s6;
+  wire [3:0] s5;
+  wire [3:0] s6;
   wire [3:0] s7;
   wire [3:0] s8;
-  DIG_Counter_Nbit #(
-    .Bits(4)
+  wire s9;
+  wire readdata;
+  wire [7:0] s10;
+  wire [3:0] s11;
+  wire [3:0] s12;
+  wire s13;
+  wire [7:0] cmd;
+  wire s14;
+  wire s15;
+  wire s16;
+  wire s17;
+  Mux_2x1_NBits #(
+    .Bits(8)
   )
-  DIG_Counter_Nbit_i0 (
-    .en( 1'b1 ),
-    .C( clk ),
-    .clr( rst ),
-    .out( s0 )
+  Mux_2x1_NBits_i0 (
+    .sel( write ),
+    .in_0( 8'b1011 ),
+    .in_1( 8'b10 ),
+    .out( cmd )
   );
-  assign SPI_cs = ~ rst;
-  assign s1 = addr_in[3:0];
-  assign s2 = addr_in[7:4];
-  assign s3 = addr_in[11:8];
-  assign s4 = addr_in[15:12];
+  assign s3 = addr_in[3:0];
+  assign s4 = addr_in[7:4];
+  assign s5 = addr_in[11:8];
+  assign s6 = addr_in[15:12];
+  assign s7 = data_in[3:0];
+  assign s8 = data_in[7:4];
+  assign s1 = cmd[3:0];
+  assign s2 = cmd[7:4];
   Mux_16x1_NBits #(
     .Bits(4)
   )
   Mux_16x1_NBits_i1 (
-    .sel( s0 ),
-    .in_0( 4'b1110 ),
-    .in_1( 4'b1011 ),
-    .in_2( s1 ),
-    .in_3( s2 ),
-    .in_4( s3 ),
-    .in_5( s4 ),
-    .in_6( 4'b0 ),
+    .sel( state ),
+    .in_0( 4'b0 ),
+    .in_1( s1 ),
+    .in_2( s2 ),
+    .in_3( s3 ),
+    .in_4( s4 ),
+    .in_5( s5 ),
+    .in_6( s6 ),
     .in_7( 4'b0 ),
     .in_8( 4'b0 ),
-    .in_9( 4'b0 ),
-    .in_10( 4'b0 ),
+    .in_9( s7 ),
+    .in_10( s8 ),
     .in_11( 4'b0 ),
     .in_12( 4'b0 ),
     .in_13( 4'b0 ),
@@ -972,50 +988,101 @@ module memory_controller (
     .in_15( 4'b0 ),
     .out( SPI_out )
   );
-  CompUnsigned #(
-    .Bits(4)
-  )
-  CompUnsigned_i2 (
-    .a( 4'b1110 ),
-    .b( s0 ),
-    .\= ( s5 )
-  );
-  CompUnsigned #(
-    .Bits(4)
-  )
-  CompUnsigned_i3 (
-    .a( 4'b1111 ),
-    .b( s0 ),
-    .\= ( data_ready_temp )
-  );
-  assign pread = (s5 | data_ready_temp);
-  assign SPI_oe = (~ pread & ~ rst);
-  DIG_Register_BUS #(
-    .Bits(8)
-  )
-  DIG_Register_BUS_i4 (
-    .D( s6 ),
-    .C( clk ),
-    .en( pread ),
-    .Q( data_out_temp )
-  );
-  assign s6[3:0] = s7;
-  assign s6[7:4] = SPI_in;
+  assign s10[3:0] = s11;
+  assign s10[7:4] = SPI_in;
   Mux_2x1_NBits #(
     .Bits(4)
   )
-  Mux_2x1_NBits_i5 (
+  Mux_2x1_NBits_i2 (
     .sel( data_ready_temp ),
     .in_0( SPI_in ),
-    .in_1( s8 ),
-    .out( s7 )
+    .in_1( s12 ),
+    .out( s11 )
   );
-  assign s8 = data_out_temp[3:0];
+  assign SPI_oe = ((s15 | ((s16 | s17) & write)) & ~ rst);
+  assign SPI_cs = (~ rst & ~ (s13 | s14));
+  assign s0 = (rst | data_ready_temp | (s17 & write));
+  DIG_Counter_Nbit #(
+    .Bits(4)
+  )
+  DIG_Counter_Nbit_i3 (
+    .en( 1'b1 ),
+    .C( clk ),
+    .clr( s0 ),
+    .out( state )
+  );
+  CompUnsigned #(
+    .Bits(4)
+  )
+  CompUnsigned_i4 (
+    .a( 4'b1101 ),
+    .b( state ),
+    .\= ( s9 )
+  );
+  CompUnsigned #(
+    .Bits(4)
+  )
+  CompUnsigned_i5 (
+    .a( 4'b1110 ),
+    .b( state ),
+    .\= ( data_ready_temp )
+  );
+  CompUnsigned #(
+    .Bits(4)
+  )
+  CompUnsigned_i6 (
+    .a( state ),
+    .b( 4'b0 ),
+    .\= ( s13 )
+  );
+  CompUnsigned #(
+    .Bits(4)
+  )
+  CompUnsigned_i7 (
+    .a( state ),
+    .b( 4'b1 ),
+    .\= ( s14 )
+  );
+  CompUnsigned #(
+    .Bits(4)
+  )
+  CompUnsigned_i8 (
+    .a( state ),
+    .b( 4'b1010 ),
+    .\< ( s15 )
+  );
+  CompUnsigned #(
+    .Bits(4)
+  )
+  CompUnsigned_i9 (
+    .a( state ),
+    .b( 4'b1001 ),
+    .\= ( s16 )
+  );
+  CompUnsigned #(
+    .Bits(4)
+  )
+  CompUnsigned_i10 (
+    .a( state ),
+    .b( 4'b1010 ),
+    .\= ( s17 )
+  );
+  assign readdata = (s9 | data_ready_temp);
+  DIG_Register_BUS #(
+    .Bits(8)
+  )
+  DIG_Register_BUS_i11 (
+    .D( s10 ),
+    .C( clk ),
+    .en( readdata ),
+    .Q( data_out_temp )
+  );
+  assign s12 = data_out_temp[3:0];
   assign data_out = data_out_temp;
   assign data_ready = data_ready_temp;
 endmodule
 
-module nna8v2 (
+module tinynna (
   input rst_n,
   input clk,
   input [7:0] uio_in,
@@ -1028,12 +1095,18 @@ module nna8v2 (
   wire clk_p;
   wire [7:0] data_in;
   wire [15:0] addr_out;
-  wire cs_flash;
-  wire [3:0] spi_in;
-  wire [3:0] spi_out;
+  wire [7:0] data_out;
   wire s0;
+  wire s1;
+  wire [3:0] spi_in;
+  wire s2;
+  wire [3:0] spi_out;
+  wire s3;
+  wire cs_flash;
   wire [3:0] spi_oe;
+  wire const1b0;
   assign uo_out = 8'b0;
+  assign const1b0 = 1'b0;
   assign rst = ~ rst_n;
   assign spi_in[0] = uio_in[1];
   assign spi_in[1] = uio_in[2];
@@ -1043,31 +1116,37 @@ module nna8v2 (
     .clk( clk_p ),
     .data_in( data_in ),
     .rst( rst ),
-    .addr_out( addr_out )
+    .addr_out( addr_out ),
+    .data_out( data_out ),
+    .r( s0 ),
+    .w( s1 )
   );
-  assign uio_out[0] = cs_flash;
+  assign uio_out[0] = ~ cs_flash;
   assign uio_out[1] = spi_out[0];
   assign uio_out[2] = spi_out[1];
   assign uio_out[3] = clk;
   assign uio_out[4] = spi_out[2];
   assign uio_out[5] = spi_out[3];
-  assign uio_out[6] = 1'b0;
-  assign uio_out[7] = 1'b0;
+  assign uio_out[6] = ~ const1b0;
+  assign uio_out[7] = ~ const1b0;
   memory_controller memory_controller_i1 (
     .clk( clk ),
     .addr_in( addr_out ),
     .SPI_in( spi_in ),
     .rst( rst ),
+    .data_in( data_out ),
+    .write( s1 ),
     .data_out( data_in ),
-    .data_ready( clk_p ),
+    .data_ready( s2 ),
     .SPI_out( spi_out ),
-    .SPI_oe( s0 ),
+    .SPI_oe( s3 ),
     .SPI_cs( cs_flash )
   );
-  assign spi_oe[0] = s0;
-  assign spi_oe[1] = s0;
-  assign spi_oe[2] = s0;
-  assign spi_oe[3] = s0;
+  assign clk_p = ((clk & ~ (s0 | s1)) | s2);
+  assign spi_oe[0] = s3;
+  assign spi_oe[1] = s3;
+  assign spi_oe[2] = s3;
+  assign spi_oe[3] = s3;
   assign uio_oe[0] = 1'b1;
   assign uio_oe[1] = spi_oe[0];
   assign uio_oe[2] = spi_oe[1];
