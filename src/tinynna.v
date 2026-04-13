@@ -431,7 +431,7 @@ module nna8v2_mpu_mux (
   wire mwr;
   wire w_temp;
   wire mrd;
-  wire r_temp;
+  wire memr;
   wire s23;
   wire xcycle_next;
   wire s24;
@@ -684,7 +684,7 @@ module nna8v2_mpu_mux (
   );
   assign s18 = (lil | lih);
   assign w_temp = (xcycle & mwr);
-  assign r_temp = (xcycle & mrd);
+  assign memr = (xcycle & mrd);
   assign xcycle_next = (s23 & (mrd | pc_write | mwr));
   Decoder2 Decoder2_i15 (
     .sel( arg0 ),
@@ -776,7 +776,8 @@ module nna8v2_mpu_mux (
   assign or_rslt = (data_out_temp | s14);
   assign not_rslt = ~ data_out_temp;
   assign xor_rslt = (data_out_temp ^ s14);
-  assign s40 = ~ (w_temp | r_temp);
+  assign s40 = ~ (w_temp | memr);
+  assign r = (memr | ~ xcycle);
   Decoder2 Decoder2_i23 (
     .sel( selreg ),
     .out_0( s10 ),
@@ -879,7 +880,6 @@ module nna8v2_mpu_mux (
     .out( addr )
   );
   assign data_out = data_out_temp;
-  assign r = r_temp;
   assign w = w_temp;
 endmodule
 
@@ -919,11 +919,14 @@ module memory_controller (
   input rst,
   input [7:0] data_in,
   input write,
+  input sel_flash,
+  input sel_ram,
   output [7:0] data_out,
   output data_ready,
   output [3:0] SPI_out, // Output
   output SPI_oe,
-  output SPI_cs
+  output SPI_csflash,
+  output SPI_csram
 );
   wire s0;
   wire [3:0] state;
@@ -937,17 +940,19 @@ module memory_controller (
   wire [3:0] s6;
   wire [3:0] s7;
   wire [3:0] s8;
-  wire s9;
+  wire [15:0] s9;
+  wire s10;
   wire readdata;
-  wire [7:0] s10;
-  wire [3:0] s11;
+  wire [7:0] s11;
   wire [3:0] s12;
-  wire s13;
-  wire [7:0] cmd;
+  wire [3:0] s13;
   wire s14;
   wire s15;
+  wire [7:0] cmd;
   wire s16;
   wire s17;
+  wire s18;
+  wire s19;
   Mux_2x1_NBits #(
     .Bits(8)
   )
@@ -957,14 +962,16 @@ module memory_controller (
     .in_1( 8'b10 ),
     .out( cmd )
   );
-  assign s3 = addr_in[3:0];
-  assign s4 = addr_in[7:4];
-  assign s5 = addr_in[11:8];
-  assign s6 = addr_in[15:12];
-  assign s7 = data_in[3:0];
-  assign s8 = data_in[7:4];
-  assign s1 = cmd[3:0];
-  assign s2 = cmd[7:4];
+  assign s9[14:0] = addr_in[14:0];
+  assign s9[15] = 1'b0;
+  assign s8 = data_in[3:0];
+  assign s7 = data_in[7:4];
+  assign s6 = s9[3:0];
+  assign s5 = s9[7:4];
+  assign s4 = s9[11:8];
+  assign s3 = s9[15:12];
+  assign s2 = cmd[3:0];
+  assign s1 = cmd[7:4];
   Mux_16x1_NBits #(
     .Bits(4)
   )
@@ -988,20 +995,22 @@ module memory_controller (
     .in_15( 4'b0 ),
     .out( SPI_out )
   );
-  assign s10[3:0] = s11;
-  assign s10[7:4] = SPI_in;
+  assign s11[3:0] = s12;
+  assign s11[7:4] = SPI_in;
   Mux_2x1_NBits #(
     .Bits(4)
   )
   Mux_2x1_NBits_i2 (
     .sel( data_ready_temp ),
     .in_0( SPI_in ),
-    .in_1( s12 ),
-    .out( s11 )
+    .in_1( s13 ),
+    .out( s12 )
   );
-  assign SPI_oe = ((s15 | ((s16 | s17) & write)) & ~ rst);
-  assign SPI_cs = (~ rst & ~ (s13 | s14));
-  assign s0 = (rst | data_ready_temp | (s17 & write));
+  assign SPI_oe = ((s17 | ((s18 | s19) & write)) & ~ rst);
+  assign s15 = (~ rst & ~ (s14 | s16));
+  assign s0 = (rst | data_ready_temp | (s19 & write));
+  assign SPI_csram = (sel_ram & s15);
+  assign SPI_csflash = (s15 & sel_flash);
   DIG_Counter_Nbit #(
     .Bits(4)
   )
@@ -1017,7 +1026,7 @@ module memory_controller (
   CompUnsigned_i4 (
     .a( 4'b1101 ),
     .b( state ),
-    .\= ( s9 )
+    .\= ( s10 )
   );
   CompUnsigned #(
     .Bits(4)
@@ -1033,7 +1042,7 @@ module memory_controller (
   CompUnsigned_i6 (
     .a( state ),
     .b( 4'b0 ),
-    .\= ( s13 )
+    .\= ( s14 )
   );
   CompUnsigned #(
     .Bits(4)
@@ -1041,7 +1050,7 @@ module memory_controller (
   CompUnsigned_i7 (
     .a( state ),
     .b( 4'b1 ),
-    .\= ( s14 )
+    .\= ( s16 )
   );
   CompUnsigned #(
     .Bits(4)
@@ -1049,7 +1058,7 @@ module memory_controller (
   CompUnsigned_i8 (
     .a( state ),
     .b( 4'b1010 ),
-    .\< ( s15 )
+    .\< ( s17 )
   );
   CompUnsigned #(
     .Bits(4)
@@ -1057,7 +1066,7 @@ module memory_controller (
   CompUnsigned_i9 (
     .a( state ),
     .b( 4'b1001 ),
-    .\= ( s16 )
+    .\= ( s18 )
   );
   CompUnsigned #(
     .Bits(4)
@@ -1065,19 +1074,19 @@ module memory_controller (
   CompUnsigned_i10 (
     .a( state ),
     .b( 4'b1010 ),
-    .\= ( s17 )
+    .\= ( s19 )
   );
-  assign readdata = (s9 | data_ready_temp);
+  assign readdata = (s10 | data_ready_temp);
   DIG_Register_BUS #(
     .Bits(8)
   )
   DIG_Register_BUS_i11 (
-    .D( s10 ),
+    .D( s11 ),
     .C( clk ),
     .en( readdata ),
     .Q( data_out_temp )
   );
-  assign s12 = data_out_temp[3:0];
+  assign s13 = data_out_temp[3:0];
   assign data_out = data_out_temp;
   assign data_ready = data_ready_temp;
 endmodule
@@ -1097,21 +1106,28 @@ module tinynna (
   wire [15:0] addr_out;
   wire [7:0] data_out;
   wire s0;
-  wire s1;
+  wire write;
   wire [3:0] spi_in;
-  wire s2;
+  wire sel_flash;
+  wire sel_ram;
+  wire s1;
   wire [3:0] spi_out;
-  wire s3;
+  wire s2;
   wire cs_flash;
+  wire cs_rama;
   wire [3:0] spi_oe;
-  wire const1b0;
+  wire sel_io;
+  wire [7:0] s3;
+  wire [7:0] s4;
+  wire s5;
+  wire [3:0] s6;
+  wire s7;
   assign uo_out = 8'b0;
-  assign const1b0 = 1'b0;
   assign rst = ~ rst_n;
-  assign spi_in[0] = uio_in[1];
-  assign spi_in[1] = uio_in[2];
-  assign spi_in[2] = uio_in[4];
-  assign spi_in[3] = uio_in[5];
+  assign spi_in[0] = uio_in[5];
+  assign spi_in[1] = uio_in[4];
+  assign spi_in[2] = uio_in[2];
+  assign spi_in[3] = uio_in[1];
   nna8v2_mpu_mux nna8v2_mpu_mux_i0 (
     .clk( clk_p ),
     .data_in( data_in ),
@@ -1119,40 +1135,72 @@ module tinynna (
     .addr_out( addr_out ),
     .data_out( data_out ),
     .r( s0 ),
-    .w( s1 )
+    .w( write )
   );
   assign uio_out[0] = ~ cs_flash;
-  assign uio_out[1] = spi_out[0];
-  assign uio_out[2] = spi_out[1];
+  assign uio_out[1] = spi_out[3];
+  assign uio_out[2] = spi_out[2];
   assign uio_out[3] = clk;
-  assign uio_out[4] = spi_out[2];
-  assign uio_out[5] = spi_out[3];
-  assign uio_out[6] = ~ const1b0;
-  assign uio_out[7] = ~ const1b0;
+  assign uio_out[4] = spi_out[1];
+  assign uio_out[5] = spi_out[0];
+  assign uio_out[6] = ~ cs_rama;
+  assign uio_out[7] = ~ 1'b0;
   memory_controller memory_controller_i1 (
     .clk( clk ),
     .addr_in( addr_out ),
     .SPI_in( spi_in ),
     .rst( rst ),
     .data_in( data_out ),
-    .write( s1 ),
+    .write( write ),
+    .sel_flash( sel_flash ),
+    .sel_ram( sel_ram ),
     .data_out( data_in ),
-    .data_ready( s2 ),
+    .data_ready( s1 ),
     .SPI_out( spi_out ),
-    .SPI_oe( s3 ),
-    .SPI_cs( cs_flash )
+    .SPI_oe( s2 ),
+    .SPI_csflash( cs_flash ),
+    .SPI_csram( cs_rama )
   );
-  assign clk_p = ((clk & ~ (s0 | s1)) | s2);
-  assign spi_oe[0] = s3;
-  assign spi_oe[1] = s3;
-  assign spi_oe[2] = s3;
-  assign spi_oe[3] = s3;
+  assign clk_p = ((clk & ~ (s0 | write)) | s1);
+  assign spi_oe[0] = s2;
+  assign spi_oe[1] = s2;
+  assign spi_oe[2] = s2;
+  assign spi_oe[3] = s2;
+  assign sel_flash = ~ addr_out[15];
+  assign s3 = addr_out[15:8];
+  assign s6 = addr_out[7:4];
+  assign s4 = addr_out[15:8];
   assign uio_oe[0] = 1'b1;
-  assign uio_oe[1] = spi_oe[0];
-  assign uio_oe[2] = spi_oe[1];
+  assign uio_oe[1] = spi_oe[3];
+  assign uio_oe[2] = spi_oe[2];
   assign uio_oe[3] = 1'b1;
-  assign uio_oe[4] = spi_oe[2];
-  assign uio_oe[5] = spi_oe[3];
+  assign uio_oe[4] = spi_oe[1];
+  assign uio_oe[5] = spi_oe[0];
   assign uio_oe[6] = 1'b1;
   assign uio_oe[7] = 1'b1;
+  CompUnsigned #(
+    .Bits(8)
+  )
+  CompUnsigned_i2 (
+    .a( s3 ),
+    .b( 8'b11111111 ),
+    .\= ( sel_io )
+  );
+  CompUnsigned #(
+    .Bits(8)
+  )
+  CompUnsigned_i3 (
+    .a( s4 ),
+    .b( 8'b10000000 ),
+    .\= ( s5 )
+  );
+  CompUnsigned #(
+    .Bits(4)
+  )
+  CompUnsigned_i4 (
+    .a( 4'b0 ),
+    .b( s6 ),
+    .\= ( s7 )
+  );
+  assign sel_ram = (~ sel_flash & ~ sel_io & ~ (s7 & s5));
 endmodule

@@ -1,4 +1,4 @@
-export INSTALL_DIR := "~/ttsetup"
+export INSTALL_DIR := x"~/ttsetup"
 
 export PDK := "sky130A"
 export LIBRELANE_TAG := "3.0.0rc1"
@@ -8,7 +8,7 @@ export VENV_ACTIVATE := "source "+ INSTALL_DIR + "/venv/bin/activate"
 
 run:
   #!/bin/bash
-  $VENV_ACTIVATE
+  eval $VENV_ACTIVATE
   ./tt/tt_tool.py --create-user-config
   ./tt/tt_tool.py --harden
   ./tt/tt_tool.py --print-warnings
@@ -16,13 +16,13 @@ run:
 [working-directory("test")]
 test: test-setup
   #!/bin/bash
-  $VENV_ACTIVATE
+  eval $VENV_ACTIVATE
   make -B
 
 [working-directory("test")]
 test-gates: gate-test-setup
   #!/bin/bash
-  $VENV_ACTIVATE
+  eval $VENV_ACTIVATE
   make -B GATES=yes
 
 
@@ -38,7 +38,7 @@ setup:
 [working-directory("test")]
 test-setup:
   #!/bin/bash
-  $VENV_ACTIVATE
+  eval $VENV_ACTIVATE
   export COCOTB_IGNORE_PYTHON_REQUIRES=1
   pip install -r requirements.txt
 
